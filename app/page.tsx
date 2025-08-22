@@ -4,12 +4,26 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Input, Textarea } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Send, Bot, User, Loader2, CheckCircle, Briefcase, Target, Calendar, Users } from "lucide-react"
+import {
+  Send,
+  Bot,
+  User,
+  Loader2,
+  CheckCircle,
+  Briefcase,
+  Target,
+  Calendar,
+  Users,
+  Copy,
+  Edit3,
+  Check,
+  X,
+} from "lucide-react"
 
 interface Message {
   id: string
@@ -41,6 +55,14 @@ const suggestedPrompts = [
   },
 ]
 
+const renderMarkdown = (text: string) => {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(/`(.*?)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-sm">$1</code>')
+    .replace(/\n/g, "<br>")
+}
+
 export default function APABot() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -54,6 +76,9 @@ export default function APABot() {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(true)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState("")
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 
   const sendMessage = async (messageText?: string) => {
     const messageToSend = messageText || input
@@ -111,6 +136,36 @@ export default function APABot() {
     }
   }
 
+  const copyToClipboard = async (content: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedMessageId(messageId)
+      setTimeout(() => setCopiedMessageId(null), 2000)
+    } catch (err) {
+      console.error("Failed to copy text: ", err)
+    }
+  }
+
+  const startEditing = (messageId: string, content: string) => {
+    setEditingMessageId(messageId)
+    setEditingContent(content)
+  }
+
+  const saveEdit = () => {
+    if (editingMessageId && editingContent.trim()) {
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === editingMessageId ? { ...msg, content: editingContent.trim() } : msg)),
+      )
+      setEditingMessageId(null)
+      setEditingContent("")
+    }
+  }
+
+  const cancelEdit = () => {
+    setEditingMessageId(null)
+    setEditingContent("")
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
@@ -161,17 +216,65 @@ export default function APABot() {
                     )}
 
                     <div
-                      className={`max-w-[75%] rounded-xl p-4 ${
+                      className={`max-w-[75%] rounded-xl p-4 group relative ${
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-card text-card-foreground border shadow-sm"
                       }`}
                     >
-                      <div className="prose prose-sm max-w-none">
-                        <p className="whitespace-pre-wrap leading-relaxed text-sm mb-0 break-words">
-                          {message.content}
-                        </p>
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 hover:bg-background/20"
+                          onClick={() => copyToClipboard(message.content, message.id)}
+                        >
+                          {copiedMessageId === message.id ? (
+                            <Check className="w-3 h-3" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </Button>
+                        {message.role === "user" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 hover:bg-background/20"
+                            onClick={() => startEditing(message.id, message.content)}
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </Button>
+                        )}
                       </div>
+
+                      {editingMessageId === message.id ? (
+                        <div className="space-y-3">
+                          <Textarea
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="min-h-[80px] bg-background/50 border-border/50"
+                            placeholder="Edit your message..."
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button variant="ghost" size="sm" onClick={cancelEdit} className="h-7 px-2 text-xs">
+                              <X className="w-3 h-3 mr-1" />
+                              Cancel
+                            </Button>
+                            <Button size="sm" onClick={saveEdit} className="h-7 px-2 text-xs">
+                              <Check className="w-3 h-3 mr-1" />
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="prose prose-sm max-w-none">
+                          <div
+                            className="whitespace-pre-wrap leading-relaxed text-sm mb-0 break-words"
+                            dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
+                          />
+                        </div>
+                      )}
+
                       <span className="text-xs opacity-60 mt-3 block">{message.timestamp.toLocaleTimeString()}</span>
                     </div>
 
