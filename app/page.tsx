@@ -126,10 +126,10 @@ export default function APABot() {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto">
         <Card className="h-[calc(100vh-2rem)] flex flex-col shadow-xl border-0">
-          <CardHeader className="bg-primary text-primary-foreground shrink-0">
+          <CardHeader className="bg-primary text-primary-foreground shrink-0 py-6">
             <CardTitle className="flex items-center gap-3 text-xl">
-              <div className="flex items-center justify-center w-10 h-10 bg-accent rounded-lg">
-                <Briefcase className="w-5 h-5 text-accent-foreground" />
+              <div className="flex items-center justify-center w-12 h-12 bg-white rounded-lg p-1">
+                <img src="/apa-agent-logo.png" alt="APA Agent Logo" className="w-full h-full object-contain" />
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold">APA Agent</span>
